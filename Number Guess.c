@@ -12,6 +12,17 @@ typedef struct
 {
     short *player, *cpu;
 } Player;
+typedef struct
+{
+    short number, IfExist, pos, IsCertain;
+} Ai;
+typedef struct
+{
+
+    Ai *data;
+    information CpuInfo;
+
+} structure;
 void wait(short time)
 {
     printf("\n");
@@ -36,80 +47,138 @@ void FreePlayers(Player players)
 }
 void DisplayInfo(information info)
 {
-    printf("\nCorrect Position : %d         Correct Numbers : %d", info.pos, info.cor);
+    Sleep(500);
+    printf("\nCorrect Numbers : %d         Correct Position : %d", info.cor, info.pos);
 }
-short pow_10(short degree)
+void IntializeData(Ai *data, short i)
 {
-    short s=1;
-    while(degree>0)
-    {
-    s*=10;
-    degree--;
-    }
-    return s;
-
-
+    data[i].number = i;
+    data[i].IsCertain = 0;
+    data[i].IfExist = 1;
+    data[i].pos = -1;
 }
+void DeleteDataNum(Ai *data, short pos, short *Numbers)
+{
+    for (short i = pos; i < *Numbers - 1; i++)
+        data[i] = data[i + 1];
+    (*Numbers)--;
+}
+void CheckStatus(structure cpu, short *guess, short *max, short digits)
+{
+    short i = 0, j;
+    while (i < *max)
+    {
+        if (cpu.data[i].IfExist == 0)
+            DeleteDataNum(cpu.data, i, max);
+        else if (cpu.data[i].IsCertain == 1 && cpu.data[i].pos != i + 1)
+        {
+            Ai temp;
+            temp = cpu.data[i];
+            cpu.data[i] = cpu.data[temp.pos - 1];
+            cpu.data[temp.pos - 1] = cpu.data[i];
+        }
+        i++;
+    }
+    if (cpu.CpuInfo.cor == 0)
+    {
+        for (i = 0; i < digits; i++)
+        {
+            j = 0;
+            while (j < *max)
+                if (guess[i] == cpu.data[j].number)
+                    DeleteDataNum(cpu.data, j, max);
+        }
+    }
+    else if (cpu.CpuInfo.cor == digits)
+    {
+        for (i = 0; i < digits; i++)
+        {
+            j = 0;
+            while (j < *max)
+                if (guess[i] != cpu.data[j].number)
+                    DeleteDataNum(cpu.data, j, max);
+        }
+    }
+}
+void GenerateGuess(structure cpu, short *guess, short max)
+{
+    short i;
+    for(i=0;i<max;i++)
+    {
+        if(cpu.data[i].IsCertain==1)
+        guess[i]=cpu.data[i].number;
+        else
+            if(cpu.data[i].IfExist==2)
+
+
+
+
+    }
+}
+
 bool IsRightDigits(short number, short digits)
 {
-    short i = 0;
-    while (number > 0)
-    {
-        i++;
-        number /= 10;
-    }
-    if (digits == i)
+    if (number == digits)
         return true;
     else
         return false;
 }
-bool IsRepeated(short guess, short digits)
+bool ConvertStrToArray(char *str, short *array, short max)
 {
-    short i = 0, x;
-    while (digits > 1)
-    {
-        x = guess;
-        i = 1;
-        while (i < digits)
-        {
-            x /= 10;
-            i++;
-        }
-        if (x == guess % 10)
+    for (int i = 0; i < max; i++)
+        if (str[i] < '1' || str[i] > '9')
+            return false;
+        else
+            array[i] = str[i] - '0';
+    return true;
+}
+bool IsZero(short *guess, short digits)
+{
+    int i = 0;
+    while (i < 0)
+        if (guess[i] == 0)
             return true;
         else
+            i++;
+    return false;
+}
+bool IsRepeated(short *guess, short digits)
+{
+    int i = 0, j;
+    while (i < digits - 1)
+    {
+        j = i + 1;
+        while (j < digits)
         {
-            guess = guess % pow_10(digits-1);
-            digits--;
+            if (guess[i] == guess[j])
+                return true;
+            else
+                j++;
         }
+        i++;
     }
     return false;
 }
-void CheckInfo(short *player, short guessing, short digits, information *info)
+void CheckInfo(short *player, short *guessing, short digits, information *info)
 {
-    short x, j;
     bool finished;
     info->cor = 0;
     info->pos = 0;
     for (short i = 0; i < digits; i++)
     {
-        finished=false;
-        x = guessing;
-        j = digits - 1;
-        while (x > 0 && !finished)
+        finished = false;
+        short j = 0;
+        while (j < digits && !finished)
         {
-            if (player[digits - 1 - i] == guessing % 10)
+            if (player[i] == guessing[j])
             {
                 info->cor++;
-                if (j == i)
+                if (i == j)
                     info->pos++;
-                finished=true;
+                finished = true;
             }
             else
-            {
-            j--;
-            x /= 10;
-            }
+                j++;
         }
     }
 }
@@ -125,73 +194,106 @@ void ReadDigits(short *digits)
 }
 void CpGenerate(short **Cpu, short digits)
 {
-    short guess = 0;
+    Sleep(500);
     srand(time(0));
     *Cpu = (short *)malloc(digits * sizeof(short));
     for (int i = 0; i < digits; i++)
-    {
+
         do
         {
             (*Cpu)[i] = 1 + rand() % 9;
 
-        } while (IsRepeated(guess, i + 1));
-        guess = guess * 10 + (*Cpu)[i];
-    }
+        } while (IsRepeated(*Cpu, i + 1));
 }
 void GeneratePlayer(short **player, short digits)
 {
-    short guess;
-    scanf("%d", &guess);
-    while (!IsRightDigits(guess, digits) || IsRepeated(guess, digits))
-    {
-        printf("\nPlease make sure to enter %d digit number that are not repeated :", digits);
-        scanf("%d", &guess);
-    }
+    short l;
+    char input[digits + 1];
     *player = (short *)malloc(sizeof(short) * digits);
-    for (int i = 0; i < digits; i++)
+    getchar();
+    gets(input);
+    l = strlen(input);
+    while (!ConvertStrToArray(input, *player, digits) || !IsRightDigits(l, digits) || IsZero(*player, digits) || IsRepeated(*player, digits))
     {
-        (*player)[digits - 1 - i] = guess % 10;
-        guess /= 10;
+        printf("\nPlease make sure to enter %d digit number that are not repeated and doesn't include zero : ", digits);
+        gets(input);
+        l = strlen(input);
     }
 }
-void ReadPlayerInput(short *cpu, short digits)
+void ReadPlayerInput(short *cpu, short digits, information *info)
 {
-    information info;
-    short guess;
-    scanf("%d", &guess);
-    while (!IsRightDigits(guess, digits) || IsRepeated(guess, digits))
+    short *guessing, l;
+    char guess[digits + 1];
+    guessing = (short *)malloc(sizeof(short) * digits);
+    gets(guess);
+    l = strlen(guess);
+    while (!ConvertStrToArray(guess, guessing, digits) || !IsRightDigits(l, digits) || IsZero(guessing, digits) || IsRepeated(guessing, digits))
     {
-        printf("\nPlease make sure to enter %d digit number that are not repeated:", digits);
-        scanf("%d", &guess);
+        printf("\nPlease make sure to enter %d digit number that are not repeated and doesn't include zero : ", digits);
+        gets(guess);
+        l = strlen(guess);
     }
-    CheckInfo(cpu, guess, digits, &info);
-    wait(5);
-    DisplayInfo(info);
+    CheckInfo(cpu, guessing, digits, info);
+    DisplayInfo(*info);
+    free(guessing);
 }
-void ReadCpuInput(short *player, short digits)
+void ReadCpuInput(short *player, short digits, structure cpu)
 {
-    information info;
-    short guess;
-    CheckInfo(player, guess, digits, &info);
-    wait(5);
-    DisplayInfo(info);
+    short *guess, i;
+    if (cpu.data = NULL)
+    {
+        guess = (short *)malloc(sizeof(short) * digits);
+        for (i = 0; i < digits; i++)
+
+            do
+            {
+                guess[i] = (rand() % 9) + 1;
+
+            } while (IsRepeated(guess, i + 1));
+        cpu.data = (Ai *)malloc(sizeof(Ai) * 9);
+        for (int i = 0; i < 9; i++)
+            IntializeData(cpu.data, i);
+    }
+    CheckInfo(player, guess, digits, &cpu.CpuInfo);
+    printf("\nThe Cpu has guessed a number :\n");
+    Display(guess, digits);
+    DisplayInfo(cpu.CpuInfo);
+}
+
+void CheckGameFinished(information info, short player, bool *finished, short digits)
+{
+    if (info.cor == digits && info.pos == digits)
+    {
+        *finished = true;
+        printf("\nThe game has finished");
+        Sleep(500);
+        printf("\nPlayer %d has won!!!!!!!!!", player);
+    }
 }
 int main()
 {
     information info;
     Player players;
-    short digits;
+    structure cpu;
+    short digits, AiNumbers;
     bool GameFinished = false;
+    cpu.data = NULL;
     printf("Welcome to the number guessing game!!\nPlease choose the number of digits 3 or 4 : ");
     ReadDigits(&digits);
     CpGenerate(&players.cpu, digits);
     printf("The Computer has generated a %d digit number , now it's your turn to enter a number for the computer to guess it :\n");
     GeneratePlayer(&players.player, digits);
-    Display(players.cpu, digits);
     while (!GameFinished)
     {
         printf("\nNow Please guess a number :\n");
-        ReadPlayerInput(players.cpu, digits);
+        ReadPlayerInput(players.cpu, digits, &info);
+        CheckGameFinished(info, 1, &GameFinished, digits);
+        if (!GameFinished)
+        {
+            Sleep(500);
+            ReadCpuInput(players.player, digits, &info);
+            CheckGameFinished(info, 2, &GameFinished, digits);
+        }
     }
     FreePlayers(players);
 }
